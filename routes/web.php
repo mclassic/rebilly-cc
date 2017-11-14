@@ -13,7 +13,9 @@
 
 $router->get('/', function () use ($router) {
     // return $router->app->version();
-    return view('checkout');
+    return view('plans');
 });
 
-$router->post('/', 'SubscriptionController@subscribe');
+// $router->post('/', 'SubscriptionController@subscribe');
+$router->post('/', 'SubscriptionController@redirectToCheckout');
+

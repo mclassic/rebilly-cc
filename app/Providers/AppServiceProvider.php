@@ -13,6 +13,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->singleton(\Rebilly\Client::class, function ($app) {
+            return new \Rebilly\Client([
+                'apiKey' => env('REBILLY_API_SECRET'),
+                'baseUrl' => \Rebilly\Client::SANDBOX_HOST,
+            ]);
+        });
     }
 }
