@@ -12,13 +12,5 @@
 */
 
 $router->get('/', 'SubscriptionController@showSubscriptionForm');
-/*
-$router->get('/', function () use ($router) {
-    // return $router->app->version();
-    return view('checkout');
-});
-*/
-
 $router->post('/', 'SubscriptionController@subscribe');
 // $router->post('/', 'SubscriptionController@redirectToCheckout');
-

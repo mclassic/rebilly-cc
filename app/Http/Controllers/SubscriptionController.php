@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Billing\CustomerFactory;
 use Illuminate\Http\Request;
 use Rebilly\Client;
+use Rebilly\Http\Exception\UnprocessableEntityException;
 
 class SubscriptionController extends Controller
 {
@@ -23,15 +25,83 @@ class SubscriptionController extends Controller
         }
     }
 
+    public function showSubscriptionForm()
+    {
+        $signature = \Rebilly\Util\RebillySignature::generateSignature(
+            env('REBILLY_API_USER'),
+            env('REBILLY_API_SECRET')
+        );
+
+        return view('checkout', [
+            'signature' => $signature
+        ]);
+    }
+
     public function subscribe(Request $request)
     {
-        var_dump($request->all());
+        // var_dump($request->all());
+        // die;
 
-        print "\n\n<br><br>\n\n";
+        //print "\n\n<br><br>\n\n";
         //var_dump($this->client);
 
-        $website = $this->client->websites()->search('ngrok')->offsetGet(0);
-        var_dump($website->getUrl());
+        //$website = $this->client->websites()->search('ngrok')->offsetGet(0);
+        //var_dump($website->getUrl());
         // var_dump($website);
+
+        // var_dump($this->client->checkoutPages()->load('751922d0-177c-477c-a15a-fb8333412b7f'));
+
+        $firstName = $request->input('first_name');
+        $lastName = $request->input('last_name');
+        $email = $request->input('email');
+        $address1 = $request->input('address1');
+        $address2 = $request->input('address2');
+        $city = $request->input('city');
+        $region = $request->input('region');
+        $postalCode = $request->input('postalcode');
+        $country = $request->input('country');
+        $phoneNumber = $request->input('phoneNumber');
+        $data = [
+            'primaryAddress' => [
+                'firstName' => $firstName,
+                'lastName' => $lastName,
+                'address' => $address1,
+                'address2' => $address2,
+                'city' => $city,
+                'region' => $region,
+                'country' => $country,
+                'postalCode' => $postalCode,
+                'emails' => [
+                    [
+                        'label' => 'main',
+                        'value' => $email,
+                        'primary' => true
+                    ]
+                ],
+                'phoneNumbers' => [
+                    [
+                        'label' => 'main',
+                        'value' => $phoneNumber,
+                        'primary' => true,
+                    ]
+                ]
+            ]
+        ];
+
+        // FLOW (Subject to change):
+        // 1. Create Customer
+        // 2. Create Default Payment Method
+        // 3. Load website
+        // 4. Load Plan
+        // 5. Create Subscription
+        try {
+            $customer = CustomerFactory::create($data);
+            var_dump($customer);
+        } catch (UnprocessableEntityException $e) {
+            print "<h1>Whoops!</h1><br>\n\n";
+            print $e->getErrors()[0];
+        }
+
+        // return $this->client->checkoutPages()->load('751922d0-177c-477c-a15a-fb8333412b7f')->getRedirectUrl();
     }
 }
