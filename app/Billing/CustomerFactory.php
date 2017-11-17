@@ -30,7 +30,7 @@ class CustomerFactory
         if (isset($data['primaryAddress']['firstName'], $data['primaryAddress']['lastName'])) {
             $searchData = [
                 'firstName' => $data['primaryAddress']['firstName'],
-                'lastName' => $data['primaryAddress']['lastName']
+                'lastName'  => $data['primaryAddress']['lastName'],
             ];
 
             $existingCustomer = static::search($searchData);
@@ -42,6 +42,7 @@ class CustomerFactory
         $customerForm = new Customer();
         $customerForm->setPrimaryAddress($data['primaryAddress']);
         $customer = self::$client->customers()->create($customerForm);
+
         // $customer->setDefaultPaymentInstrument(new \Rebilly\Entities\PaymentInstruments\PaymentCardInstrument());
 
         return $customer;
@@ -55,6 +56,7 @@ class CustomerFactory
     public static function find(string $customerId)
     {
         self::setUp();
+
         return self::$client->customers()->load($customerId);
     }
 

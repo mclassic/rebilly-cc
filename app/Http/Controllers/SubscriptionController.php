@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Billing\CustomerFactory;
+use App\Billing\Subscriber;
 use Illuminate\Http\Request;
 use Rebilly\Client;
 use Rebilly\Http\Exception\UnprocessableEntityException;
@@ -12,7 +13,8 @@ class SubscriptionController extends Controller
     /** @var  Client */
     protected $client;
 
-    public function __construct(Client $client) {
+    public function __construct(Client $client)
+    {
         $this->client = $client;
     }
 
@@ -33,7 +35,7 @@ class SubscriptionController extends Controller
         );
 
         return view('checkout', [
-            'signature' => $signature
+            'signature' => $signature,
         ]);
     }
 
@@ -63,29 +65,29 @@ class SubscriptionController extends Controller
         $phoneNumber = $request->input('phoneNumber');
         $data = [
             'primaryAddress' => [
-                'firstName' => $firstName,
-                'lastName' => $lastName,
-                'address' => $address1,
-                'address2' => $address2,
-                'city' => $city,
-                'region' => $region,
-                'country' => $country,
-                'postalCode' => $postalCode,
-                'emails' => [
+                'firstName'    => $firstName,
+                'lastName'     => $lastName,
+                'address'      => $address1,
+                'address2'     => $address2,
+                'city'         => $city,
+                'region'       => $region,
+                'country'      => $country,
+                'postalCode'   => $postalCode,
+                'emails'       => [
                     [
-                        'label' => 'main',
-                        'value' => $email,
-                        'primary' => true
-                    ]
+                        'label'   => 'main',
+                        'value'   => $email,
+                        'primary' => true,
+                    ],
                 ],
                 'phoneNumbers' => [
                     [
-                        'label' => 'main',
-                        'value' => $phoneNumber,
+                        'label'   => 'main',
+                        'value'   => $phoneNumber,
                         'primary' => true,
-                    ]
-                ]
-            ]
+                    ],
+                ],
+            ],
         ];
 
         // FLOW (Subject to change):
@@ -96,7 +98,23 @@ class SubscriptionController extends Controller
         // 5. Create Subscription
         try {
             $customer = CustomerFactory::create($data);
-            var_dump($customer);
+            $website = $this->client->websites()->load(env('REBILLY_WEBSITE_ID'));
+            if ($request->input('plan') == 'montreal') {
+                $planId = env('REBILLY_PLAN_MONTREAL_ID');
+            } else if ($request->input('plan') == 'toronto') {
+                $planId = env('REBILLY_PLAN_TORONTO_ID');
+            }
+
+            if (empty($planId)) {
+                print "<h1>Invalid Plan</h1><br>\n\n";
+
+                return;
+            }
+
+            $plan = $this->client->plans()->load($planId);
+            $subscriber = new Subscriber($website, $plan, $customer);
+            $subscription = $subscriber->subscribe();
+            // var_dump($subscription);
         } catch (UnprocessableEntityException $e) {
             print "<h1>Whoops!</h1><br>\n\n";
             print $e->getErrors()[0];
