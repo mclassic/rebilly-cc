@@ -3,6 +3,11 @@
 namespace App\Billing;
 
 use Rebilly\Entities\Customer;
+use Rebilly\Entities\PaymentCard;
+use Rebilly\Entities\PaymentInstruments\PaymentCardInstrument;
+use Rebilly\Entities\PaymentInstruments\PaymentCardPaymentInstrument;
+use Rebilly\Entities\PaymentMethod;
+use Rebilly\Entities\PaymentMethodInstrument;
 use Rebilly\Http\Exception\UnprocessableEntityException;
 
 class CustomerFactory
@@ -19,12 +24,12 @@ class CustomerFactory
     }
 
     /**
-     * @param array $data
+     * @param array  $data
+     * @param string $paymentTokenId
      *
      * @return Customer
-     * @throws UnprocessableEntityException
      */
-    public static function create(array $data)
+    public static function create(array $data, string $paymentTokenId)
     {
         self::setUp();
         if (isset($data['primaryAddress']['firstName'], $data['primaryAddress']['lastName'])) {
@@ -35,6 +40,11 @@ class CustomerFactory
 
             $existingCustomer = static::search($searchData);
             if ($existingCustomer instanceof Customer) {
+                if (is_null($existingCustomer->getDefaultPaymentInstrument())) {
+                    $existingCustomer->setDefaultPaymentInstrument(self::getPaymentInstrumentFromToken($paymentTokenId));
+                    self::$client->customers()->update($existingCustomer->getId(), $existingCustomer->jsonSerialize());
+                }
+
                 return $existingCustomer;
             }
         }
@@ -42,8 +52,7 @@ class CustomerFactory
         $customerForm = new Customer();
         $customerForm->setPrimaryAddress($data['primaryAddress']);
         $customer = self::$client->customers()->create($customerForm);
-
-        // $customer->setDefaultPaymentInstrument(new \Rebilly\Entities\PaymentInstruments\PaymentCardInstrument());
+        $customer->setDefaultPaymentInstrument(self::getPaymentInstrumentFromToken($paymentTokenId));
 
         return $customer;
     }
@@ -52,6 +61,7 @@ class CustomerFactory
      * @param string $customerId
      *
      * @return Customer
+     * @internal
      */
     public static function find(string $customerId)
     {
@@ -64,6 +74,7 @@ class CustomerFactory
      * @param array $fields
      *
      * @return Customer
+     * @internal
      */
     public static function search(array $fields)
     {
@@ -86,5 +97,21 @@ class CustomerFactory
                 }
         }
         */
+    }
+
+    /**
+     * Build a {@link PaymentMethodInstrument} from a {@link PaymentToken}
+     *
+     * @param $paymentTokenId
+     *
+     * @return PaymentMethodInstrument
+     */
+    protected static function getPaymentInstrumentFromToken($paymentTokenId)
+    {
+        $paymentToken = self::$client->paymentCardTokens()->load($paymentTokenId);
+        $paymentTokenData = $paymentToken->jsonSerialize();
+        $paymentTokenData['method'] = PaymentMethod::METHOD_PAYMENT_CARD;
+
+        return PaymentMethodInstrument::createFromData($paymentTokenData);
     }
 }

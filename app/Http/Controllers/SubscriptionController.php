@@ -44,6 +44,9 @@ class SubscriptionController extends Controller
         // var_dump($request->all());
         // die;
 
+        // $paymentToken = $this->client->paymentCardTokens()->load($request->input('payment-token'));
+        // var_dump($paymentToken); die;
+
         //print "\n\n<br><br>\n\n";
         //var_dump($this->client);
 
@@ -97,7 +100,9 @@ class SubscriptionController extends Controller
         // 4. Load Plan
         // 5. Create Subscription
         try {
-            $customer = CustomerFactory::create($data);
+            $paymentTokenId = $request->input('payment-token');
+            $customer = CustomerFactory::create($data, $paymentTokenId);
+
             $website = $this->client->websites()->load(env('REBILLY_WEBSITE_ID'));
             if ($request->input('plan') == 'montreal') {
                 $planId = env('REBILLY_PLAN_MONTREAL_ID');
@@ -114,7 +119,7 @@ class SubscriptionController extends Controller
             $plan = $this->client->plans()->load($planId);
             $subscriber = new Subscriber($website, $plan, $customer);
             $subscription = $subscriber->subscribe();
-            // var_dump($subscription);
+            var_dump($subscription);
         } catch (UnprocessableEntityException $e) {
             print "<h1>Whoops!</h1><br>\n\n";
             print $e->getErrors()[0];
