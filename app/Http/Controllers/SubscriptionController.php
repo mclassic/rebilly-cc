@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Billing\CustomerFactory;
+use App\Billing\CustomerRepository;
 use App\Billing\Subscriber;
 use Illuminate\Http\Request;
 use Rebilly\Client;
@@ -101,7 +101,7 @@ class SubscriptionController extends Controller
         // 5. Create Subscription
         try {
             $paymentTokenId = $request->input('payment-token');
-            $customer = CustomerFactory::create($data, $paymentTokenId);
+            $customer = CustomerRepository::create($data, $paymentTokenId);
 
             $website = $this->client->websites()->load(env('REBILLY_WEBSITE_ID'));
             if ($request->input('plan') == 'montreal') {

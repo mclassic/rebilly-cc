@@ -10,7 +10,7 @@ use Rebilly\Entities\PaymentMethod;
 use Rebilly\Entities\PaymentMethodInstrument;
 use Rebilly\Http\Exception\UnprocessableEntityException;
 
-class CustomerFactory
+class CustomerRepository
 {
     /** @var  \Rebilly\Client */
     protected static $client;
@@ -109,6 +109,7 @@ class CustomerFactory
     protected static function getPaymentInstrumentFromToken($paymentTokenId)
     {
         $paymentToken = self::$client->paymentCardTokens()->load($paymentTokenId);
+        $paymentCardForm = new PaymentCard($paymentToken->jsonSerialize());
         $paymentTokenData = $paymentToken->jsonSerialize();
         $paymentTokenData['method'] = PaymentMethod::METHOD_PAYMENT_CARD;
 
