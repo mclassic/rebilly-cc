@@ -3,12 +3,6 @@
 namespace App\Billing;
 
 use Rebilly\Entities\Customer;
-use Rebilly\Entities\PaymentCard;
-use Rebilly\Entities\PaymentInstruments\PaymentCardInstrument;
-use Rebilly\Entities\PaymentInstruments\PaymentCardPaymentInstrument;
-use Rebilly\Entities\PaymentMethod;
-use Rebilly\Entities\PaymentMethodInstrument;
-use Rebilly\Http\Exception\UnprocessableEntityException;
 
 class CustomerRepository
 {
@@ -41,8 +35,16 @@ class CustomerRepository
             $existingCustomer = static::search($searchData);
             if ($existingCustomer instanceof Customer) {
                 if (is_null($existingCustomer->getDefaultPaymentInstrument())) {
-                    $existingCustomer->setDefaultPaymentInstrument(self::getPaymentInstrumentFromToken($paymentTokenId));
-                    self::$client->customers()->update($existingCustomer->getId(), $existingCustomer->jsonSerialize());
+                    // First let's check for any existing PaymentCards attached to the customer
+
+                    $customerPayment = new CustomerPaymentFacade(
+                        $existingCustomer,
+                        self::$client->paymentCardTokens()->load($paymentTokenId)
+                    );
+
+                    $customerPayment->setDefaultPaymentMethodInstrument();
+                    $existingCustomer = $customerPayment->updateCustomer();
+                    dd($existingCustomer);
                 }
 
                 return $existingCustomer;
@@ -52,7 +54,13 @@ class CustomerRepository
         $customerForm = new Customer();
         $customerForm->setPrimaryAddress($data['primaryAddress']);
         $customer = self::$client->customers()->create($customerForm);
-        $customer->setDefaultPaymentInstrument(self::getPaymentInstrumentFromToken($paymentTokenId));
+        $customerPayment = new CustomerPaymentFacade(
+            $customer,
+            self::$client->paymentCardTokens()->load($paymentTokenId)
+        );
+
+        $customerPayment->setDefaultPaymentMethodInstrument();
+        $customer = $customerPayment->updateCustomer();
 
         return $customer;
     }
@@ -97,22 +105,5 @@ class CustomerRepository
                 }
         }
         */
-    }
-
-    /**
-     * Build a {@link PaymentMethodInstrument} from a {@link PaymentToken}
-     *
-     * @param $paymentTokenId
-     *
-     * @return PaymentMethodInstrument
-     */
-    protected static function getPaymentInstrumentFromToken($paymentTokenId)
-    {
-        $paymentToken = self::$client->paymentCardTokens()->load($paymentTokenId);
-        $paymentCardForm = new PaymentCard($paymentToken->jsonSerialize());
-        $paymentTokenData = $paymentToken->jsonSerialize();
-        $paymentTokenData['method'] = PaymentMethod::METHOD_PAYMENT_CARD;
-
-        return PaymentMethodInstrument::createFromData($paymentTokenData);
     }
 }
