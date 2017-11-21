@@ -102,7 +102,6 @@ class SubscriptionController extends Controller
         try {
             $paymentTokenId = $request->input('payment-token');
             $customer = CustomerRepository::create($data, $paymentTokenId);
-            dd($customer);
 
             $website = $this->client->websites()->load(env('REBILLY_WEBSITE_ID'));
             if ($request->input('plan') == 'montreal') {
@@ -120,7 +119,8 @@ class SubscriptionController extends Controller
             $plan = $this->client->plans()->load($planId);
             $subscriber = new Subscriber($website, $plan, $customer);
             $subscription = $subscriber->subscribe();
-            var_dump($subscription);
+
+            return view('subscribed', compact('customer', 'plan', 'subscription'));
         } catch (UnprocessableEntityException $e) {
             print "<h1>Whoops!</h1><br>\n\n";
             print "<h2>{$e->getErrors()[0]}</h2>\n";

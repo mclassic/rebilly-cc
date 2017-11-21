@@ -7,6 +7,10 @@ use Rebilly\Entities\Customer;
 use Rebilly\Entities\PaymentCardToken;
 use Rebilly\Entities\PaymentInstruments\PaymentCardInstrument;
 
+/**
+ * Facade class that provides a basic API and bundles together any business logic necessary in order to facilitate
+ * payment cards, instruments with payment token for a provided Customer.
+ */
 class CustomerPaymentFacade
 {
     /** @var  Client */
@@ -47,6 +51,7 @@ class CustomerPaymentFacade
         $customerData['customerId'] = $customerData['id'];
         $paymentCard = $this->client->paymentCards()->createFromToken($this->paymentCardToken->getId(), $customerData);
         $paymentInstrument = new PaymentCardInstrument($paymentCard->jsonSerialize());
+        $paymentInstrument->setPaymentCardId($paymentCard->getId());
         $this->customer->setDefaultPaymentInstrument($paymentInstrument);
     }
 }
